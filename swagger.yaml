@@ -1,0 +1,82 @@
+openapi: 3.0.0
+info:
+  title: Bitespeed Backend Task Identity Reconciliation
+  description: API docs for BE APIs
+  version: 1.0.0
+
+servers:
+  - url: https://{environment}.azurewebsites.net
+
+components:
+  responses:
+    BadRequest:
+      description: Invalid Post parameters .
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    InternalServerError:
+      description: There was an internal server error .
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Error:
+      type: object
+      properties:
+        statusCode:
+          type: number
+        message:
+          type: string
+      required:
+        - code
+        - message
+
+paths:
+  /identity:
+    post:
+      summary: Creats a new contact if require and get all the existing contacts
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                phoneNumber:
+                  type: string
+      responses:
+        "200":
+          description: Sucess Status for user log in or register
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contact:
+                    type: object
+                    properties:
+                      primaryContatctId:
+                        type: integer
+                      emails:
+                        type: array
+                        items:
+                          type: string
+                      phoneNumbers:
+                        type: array
+                        items:
+                          type: string
+                      secondaryContactIds:
+                        type: array
+                        items:
+                          type: integer
+
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
