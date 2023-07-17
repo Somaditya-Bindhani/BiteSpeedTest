@@ -4,6 +4,7 @@
   "description": "BiteSpeed test project ",
   "main": "index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Somaditya Bindhani",
