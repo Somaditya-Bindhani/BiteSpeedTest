@@ -1,7 +1,58 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-const contactHandler = async (req, res) => {
+const getContact = async (req, res) => {
+  try {
+    const { email, phoneNumber } = req.body;
+    let filter = [];
+    if (email) {
+      filter = [
+        {
+          email,
+        },
+      ];
+    }
+    if (phoneNumber) {
+      filter = [
+        ...filter,
+        {
+          phoneNumber,
+        },
+      ];
+    }
+    const allContacts = await prisma.contact.findMany({
+      where: {
+        OR: filter,
+      },
+    });
+    let primaryContact = allContacts.length
+      ? allContacts.find((ele) => ele.linkPrecedence === "primary")
+      : null;
+    if (!primaryContact) {
+      const data = await prisma.contact.findUnique({
+        where: {
+          id: allContacts[0].linkedId,
+        },
+      });
+      allContacts.unshift(data);
+      primaryContact = data;
+    }
+    const response = {
+      primaryContactId: primaryContact.id,
+      emails: allContacts.map((ele) => ele.email),
+      phoneNumbers: allContacts.map((ele) => ele.phoneNumber),
+      secondaryContactId: allContacts.map((ele) => {
+        if (ele.linkPrecedence !== "primary") return ele.id;
+      }),
+    };
+    return res.status(500).json(response);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ message: "Internal Server error." });
+  }
+};
+
+const contactHandler = async (req, res, next) => {
   try {
     const { email, phoneNumber } = req.body;
     if (!email && !phoneNumber) {
@@ -13,7 +64,6 @@ const contactHandler = async (req, res) => {
     if (email) {
       filter = [
         {
-          linkPrecedence: "primary",
           email,
         },
       ];
@@ -22,19 +72,18 @@ const contactHandler = async (req, res) => {
       filter = [
         ...filter,
         {
-          linkPrecedence: "primary",
           phoneNumber,
         },
       ];
     }
-    const primaryContactArray = await prisma.contact.findMany({
+    let data;
+    const contactExists = await prisma.contact.findMany({
       where: {
         OR: filter,
       },
-      orderBy: { createdAt: "asc" },
     });
-    if (!primaryContactArray.length) {
-      const data = await prisma.contact.create({
+    if (!contactExists.length) {
+      data = await prisma.contact.create({
         data: {
           email: email ? email : null,
           phoneNumber: phoneNumber ? phoneNumber : null,
@@ -45,27 +94,44 @@ const contactHandler = async (req, res) => {
           deleteAt: null,
         },
       });
-      return res.status(200).json({ content: data });
+      return next();
     }
-    const primaryContact = primaryContactArray[0];
-    if (
-      (email && primaryContact.email !== email) ||
-      (phoneNumber && primaryContact.phoneNumber !== phoneNumber)
-    ) {
+    const primaryContactArray = contactExists.filter(
+      (ele) => ele.linkPrecedence === "primary"
+    );
+    const primaryContact = primaryContactArray[0] || null;
+    if (primaryContactArray.length > 1) {
+      data = await prisma.contact.update({
+        where: { id: primaryContactArray[1].id },
+        data: {
+          linkPrecedence: "secondary",
+          linkedId: primaryContact.id,
+          updatedAt: new Date(),
+        },
+      });
+      return next();
+    }
+    const emailFlag = email
+      ? contactExists.some((ele) => ele.email === email)
+      : true;
+    const phoneNumberFlag = phoneNumber
+      ? contactExists.some((ele) => ele.phoneNumber === phoneNumber)
+      : true;
+    if (!emailFlag || !phoneNumberFlag) {
+      const id = primaryContact ? primaryContact.id : contactExists[0].linkedId;
       const data = await prisma.contact.create({
         data: {
           email: email ? email : null,
           phoneNumber: phoneNumber ? phoneNumber : null,
-          linkedId: primaryContact.id,
+          linkedId: id,
           linkPrecedence: "secondary",
           createdAt: new Date(),
           updatedAt: null,
           deleteAt: null,
         },
       });
-      return res.status(200).json({ content: { primaryContactArray, data } });
     }
-    return res.status(200).json("OK");
+    return next();
   } catch (error) {
     console.log(error);
     return res.status(500).json("Internal Server Error");
@@ -74,4 +140,4 @@ const contactHandler = async (req, res) => {
   }
 };
 
-module.exports = contactHandler;
+module.exports = { contactHandler, getContact };
