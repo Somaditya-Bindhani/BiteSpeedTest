@@ -4,7 +4,13 @@ const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const controller = require("./controller/contact");
 const path = require("path");
+const corsConfig = require("./config/cors");
+const cors = require("cors");
+
+require("dotenv").config();
+
 app.use(express.json());
+app.use(cors(corsConfig));
 
 swaggerDocument = YAML.load(path.join(__dirname, "swagger.yaml"));
 app.use(express.urlencoded({ extended: true }));
