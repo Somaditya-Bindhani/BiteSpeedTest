@@ -34,7 +34,7 @@ components:
         - message
 
 paths:
-  /identity:
+  /identify:
     post:
       summary: Creats a new contact if require and get all the existing contacts
       tags:
