@@ -46,3 +46,7 @@ URL : https://bit-speed-be-test.onrender.com/api-docs <br/>
 Local : https://localhost:5050 <br/>
 Development : https://bit-speed-be-test.onrender.com
 
+## About me
+Website : https://somaditya-bindhani.vercel.app/ <br/>
+Resume  : https://drive.google.com/file/d/1fecS7k2Fv-jIyg5cGwsY9Srd__q4kJbD/view?usp=sharing <br/>
+
