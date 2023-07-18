@@ -8,7 +8,14 @@ app.use(express.json());
 
 swaggerDocument = YAML.load(path.join(__dirname, "swagger.yaml"));
 app.use(express.urlencoded({ extended: true }));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+const options = {
+  customCss: ".swagger-ui .topbar { display: none }",
+};
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerDocument, options)
+);
 
 app.get("/", (req, res) => {
   return res.status(200).json({ message: "Server is up and running." });
