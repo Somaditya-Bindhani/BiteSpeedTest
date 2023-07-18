@@ -3,47 +3,34 @@ const prisma = new PrismaClient();
 
 const getContact = async (req, res) => {
   try {
-    const { email, phoneNumber } = req.body;
-    let filter = [];
-    if (email) {
-      filter = [
-        {
-          email,
-        },
-      ];
-    }
-    if (phoneNumber) {
-      filter = [
-        ...filter,
-        {
-          phoneNumber,
-        },
-      ];
-    }
-    const allContacts = await prisma.contact.findMany({
+    const id = req.primaryContactId;
+    const contacts = await prisma.contact.findMany({
       where: {
-        OR: filter,
+        OR: [{ id: id }, { linkedId: id }],
+      },
+      orderBy: {
+        createdAt: "asc",
       },
     });
-    let primaryContact = allContacts.length
-      ? allContacts.find((ele) => ele.linkPrecedence === "primary")
+    let primaryContact = contacts.length
+      ? contacts.find((ele) => ele.linkPrecedence === "primary")
       : null;
-    if (!primaryContact) {
-      const data = await prisma.contact.findUnique({
-        where: {
-          id: allContacts[0].linkedId,
-        },
-      });
-      allContacts.unshift(data);
-      primaryContact = data;
+    const emails = new Set();
+    const phoneNumbers = new Set();
+    const secondaryContactId = [];
+    for (const ele of contacts) {
+      emails.add(ele.email);
+      phoneNumbers.add(ele.phoneNumber);
+      if (ele.linkPrecedence !== "primary" && ele.id) {
+        secondaryContactId.push(ele.id);
+      }
     }
+    console.log(emails, phoneNumbers);
     const response = {
       primaryContactId: primaryContact.id,
-      emails: allContacts.map((ele) => ele.email),
-      phoneNumbers: allContacts.map((ele) => ele.phoneNumber),
-      secondaryContactId: allContacts.map((ele) => {
-        if (ele.linkPrecedence !== "primary") return ele.id;
-      }),
+      emails: [...emails],
+      phoneNumbers: [...phoneNumbers],
+      secondaryContactId,
     };
     return res.status(500).json(response);
   } catch (error) {
@@ -81,6 +68,9 @@ const contactHandler = async (req, res, next) => {
       where: {
         OR: filter,
       },
+      orderBy: {
+        createdAt: "asc",
+      },
     });
     if (!contactExists.length) {
       data = await prisma.contact.create({
@@ -94,12 +84,17 @@ const contactHandler = async (req, res, next) => {
           deleteAt: null,
         },
       });
+      req.primaryContactId = data.id;
       return next();
     }
     const primaryContactArray = contactExists.filter(
       (ele) => ele.linkPrecedence === "primary"
     );
     const primaryContact = primaryContactArray[0] || null;
+    const primaryContactId = primaryContact
+      ? primaryContact.id
+      : contactExists[0].linkedId;
+    req.primaryContactId = primaryContactId;
     if (primaryContactArray.length > 1) {
       data = await prisma.contact.update({
         where: { id: primaryContactArray[1].id },
@@ -118,12 +113,11 @@ const contactHandler = async (req, res, next) => {
       ? contactExists.some((ele) => ele.phoneNumber === phoneNumber)
       : true;
     if (!emailFlag || !phoneNumberFlag) {
-      const id = primaryContact ? primaryContact.id : contactExists[0].linkedId;
-      const data = await prisma.contact.create({
+      await prisma.contact.create({
         data: {
           email: email ? email : null,
           phoneNumber: phoneNumber ? phoneNumber : null,
-          linkedId: id,
+          linkedId: primaryContactId,
           linkPrecedence: "secondary",
           createdAt: new Date(),
           updatedAt: null,
