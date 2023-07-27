@@ -28,7 +28,8 @@ app.get("/", (req, res) => {
 });
 
 app.post("/identify", controller.contactHandler, controller.getContact);
+const PORT = 5000;
 
-app.listen(5050, () => {
-  console.log("Server listening on PORT : 5050");
+app.listen(PORT, () => {
+  console.log("Server listening on PORT : " + PORT);
 });

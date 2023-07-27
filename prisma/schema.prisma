@@ -7,16 +7,16 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://postgres:postgres@db:5432/contact_db?connect_timeout=300"
 }
 
-model Contact{
-  id Int @id @default(autoincrement())
-  phoneNumber String?
-  email String? 
-  linkedId Int?
+model Contact {
+  id             Int       @id @default(autoincrement())
+  phoneNumber    String?
+  email          String?
+  linkedId       Int?
   linkPrecedence String
-  createdAt DateTime
-  updatedAt DateTime?
-  deleteAt DateTime?
+  createdAt      DateTime
+  updatedAt      DateTime?
+  deleteAt       DateTime?
 }
