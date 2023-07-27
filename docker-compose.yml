@@ -8,8 +8,11 @@ services:
       - db
     ports:
       - 5000:5000
+    networks:
+      - default
     volumes:
       - data:/var/lib/postgresql/data
+    command: bash -c "npm run migrate && npm run start"
 
   db:
     image: postgres
@@ -19,8 +22,13 @@ services:
       - POSTGRES_DB=contact_db
     ports:
       - 6001:5432
+    networks:
+      - default
     volumes:
       - data:/var/lib/postgresql/data
 
 volumes:
   data:
+
+networks:
+  default: {}
