@@ -15,6 +15,8 @@ RUN npm install
 #Generate Prisma client 
 RUN npx prisma generate
 
+RUN npx prisma migrate dev
+
 
 EXPOSE 5000
 CMD [ "node", "index.js" ]FROM node:18
